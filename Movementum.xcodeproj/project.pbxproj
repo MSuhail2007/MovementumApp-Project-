@@ -15,7 +15,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		0ACD2AF82E5AF65200F28C53 /* FitnessAppProject.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FitnessAppProject.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		0ACD2AF82E5AF65200F28C53 /* Movementum.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Movementum.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -54,7 +54,7 @@
 		0ACD2AF92E5AF65200F28C53 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				0ACD2AF82E5AF65200F28C53 /* FitnessAppProject.app */,
+				0ACD2AF82E5AF65200F28C53 /* Movementum.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -69,9 +69,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		0ACD2AF72E5AF65200F28C53 /* FitnessAppProject */ = {
+		0ACD2AF72E5AF65200F28C53 /* Movementum */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 0ACD2B032E5AF65400F28C53 /* Build configuration list for PBXNativeTarget "FitnessAppProject" */;
+			buildConfigurationList = 0ACD2B032E5AF65400F28C53 /* Build configuration list for PBXNativeTarget "Movementum" */;
 			buildPhases = (
 				0ACD2AF42E5AF65200F28C53 /* Sources */,
 				0ACD2AF52E5AF65200F28C53 /* Frameworks */,
@@ -84,7 +84,7 @@
 			fileSystemSynchronizedGroups = (
 				0ACD2AFA2E5AF65200F28C53 /* FitnessAppProject */,
 			);
-			name = FitnessAppProject;
+			name = Movementum;
 			packageProductDependencies = (
 				0AC173A72E8A46D500A2F8C0 /* GoogleSignIn */,
 				0AC173A92E8A46D500A2F8C0 /* GoogleSignInSwift */,
@@ -93,7 +93,7 @@
 				0ADFA6D42E8A500600F78711 /* GoogleGenerativeAI */,
 			);
 			productName = FitnessAppProject;
-			productReference = 0ACD2AF82E5AF65200F28C53 /* FitnessAppProject.app */;
+			productReference = 0ACD2AF82E5AF65200F28C53 /* Movementum.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -111,7 +111,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 0ACD2AF32E5AF65200F28C53 /* Build configuration list for PBXProject "FitnessAppProject" */;
+			buildConfigurationList = 0ACD2AF32E5AF65200F28C53 /* Build configuration list for PBXProject "Movementum" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -130,7 +130,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				0ACD2AF72E5AF65200F28C53 /* FitnessAppProject */,
+				0ACD2AF72E5AF65200F28C53 /* Movementum */,
 			);
 		};
 /* End PBXProject section */
@@ -352,7 +352,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		0ACD2AF32E5AF65200F28C53 /* Build configuration list for PBXProject "FitnessAppProject" */ = {
+		0ACD2AF32E5AF65200F28C53 /* Build configuration list for PBXProject "Movementum" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				0ACD2B012E5AF65400F28C53 /* Debug */,
@@ -361,7 +361,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		0ACD2B032E5AF65400F28C53 /* Build configuration list for PBXNativeTarget "FitnessAppProject" */ = {
+		0ACD2B032E5AF65400F28C53 /* Build configuration list for PBXNativeTarget "Movementum" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				0ACD2B042E5AF65400F28C53 /* Debug */,
