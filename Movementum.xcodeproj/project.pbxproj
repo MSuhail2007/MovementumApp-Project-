@@ -18,22 +18,9 @@
 		0ACD2AF82E5AF65200F28C53 /* FitnessAppProject.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FitnessAppProject.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		0AC173AC2E8A470C00A2F8C0 /* Exceptions for "FitnessAppProject" folder in "FitnessAppProject" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Info.plist,
-			);
-			target = 0ACD2AF72E5AF65200F28C53 /* FitnessAppProject */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
-
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		0ACD2AFA2E5AF65200F28C53 /* FitnessAppProject */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				0AC173AC2E8A470C00A2F8C0 /* Exceptions for "FitnessAppProject" folder in "FitnessAppProject" target */,
-			);
 			path = FitnessAppProject;
 			sourceTree = "<group>";
 		};
