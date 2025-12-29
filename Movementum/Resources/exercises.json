@@ -1,0 +1,172 @@
+[
+  {
+    "id": "ex_001",
+    "name": "Jump Squats",
+    "description": "Explosive squat variation to build power and burn calories. Keep landing soft.",
+    "muscle_group": ["Legs", "Glutes", "Cardio"],
+    "type": "Plyometric",
+    "primary_goals": ["Weight Loss", "Endurance"],
+    "difficulty_tier": 2,
+    "impact_level": "High",
+    "equipment_needed": ["None"],
+    "parameters": {
+      "beginner": { "sets": 3, "reps": "8", "rest_sec": 60 },
+      "intermediate": { "sets": 4, "reps": "12", "rest_sec": 45 },
+      "advanced": { "sets": 5, "reps": "20", "rest_sec": 30 }
+    },
+    "image_name": "jump_squat_anim"
+  },
+  {
+    "id": "ex_002",
+    "name": "Standard Push-up",
+    "description": "Classic upper body exercise for chest and triceps.",
+    "muscle_group": ["Chest", "Triceps", "Shoulders"],
+    "type": "Strength",
+    "primary_goals": ["Strength", "Endurance"],
+    "difficulty_tier": 1,
+    "impact_level": "Low",
+    "equipment_needed": ["None"],
+    "parameters": {
+      "beginner": { "sets": 3, "reps": "8", "rest_sec": 60 },
+      "intermediate": { "sets": 4, "reps": "15", "rest_sec": 45 },
+      "advanced": { "sets": 5, "reps": "25", "rest_sec": 30 }
+    },
+    "image_name": "pushup_anim"
+  },
+  {
+    "id": "ex_003",
+    "name": "Burpees",
+    "description": "Full body movement that combines a squat, push-up, and jump.",
+    "muscle_group": ["Full Body", "Cardio"],
+    "type": "HIIT",
+    "primary_goals": ["Weight Loss", "Endurance"],
+    "difficulty_tier": 3,
+    "impact_level": "High",
+    "equipment_needed": ["None"],
+    "parameters": {
+      "beginner": { "sets": 3, "reps": "5", "rest_sec": 90 },
+      "intermediate": { "sets": 4, "reps": "10", "rest_sec": 60 },
+      "advanced": { "sets": 5, "reps": "15", "rest_sec": 45 }
+    },
+    "image_name": "burpee_anim"
+  },
+  {
+    "id": "ex_004",
+    "name": "Plank",
+    "description": "Static hold to strengthen the core and lower back.",
+    "muscle_group": ["Abs", "Lower Back"],
+    "type": "Stability",
+    "primary_goals": ["Strength", "Endurance"],
+    "difficulty_tier": 1,
+    "impact_level": "Low",
+    "equipment_needed": ["None"],
+    "parameters": {
+      "beginner": { "sets": 3, "duration_sec": 20, "rest_sec": 45 },
+      "intermediate": { "sets": 3, "duration_sec": 45, "rest_sec": 45 },
+      "advanced": { "sets": 4, "duration_sec": 90, "rest_sec": 30 }
+    },
+    "image_name": "plank_anim"
+  },
+  {
+    "id": "ex_005",
+    "name": "Cobra Stretch",
+    "description": "Gentle back extension to improve spinal flexibility.",
+    "muscle_group": ["Back", "Abs"],
+    "type": "Flexibility",
+    "primary_goals": ["Flexibility", "Recovery"],
+    "difficulty_tier": 1,
+    "impact_level": "Low",
+    "equipment_needed": ["Mat"],
+    "parameters": {
+      "beginner": { "sets": 2, "duration_sec": 20, "rest_sec": 30 },
+      "intermediate": { "sets": 3, "duration_sec": 30, "rest_sec": 30 },
+      "advanced": { "sets": 3, "duration_sec": 45, "rest_sec": 20 }
+    },
+    "image_name": "cobra_stretch_anim"
+  },
+  {
+    "id": "ex_006",
+    "name": "Wall Sit",
+    "description": "Isolates the quads without putting impact on the knees.",
+    "muscle_group": ["Legs"],
+    "type": "Strength",
+    "primary_goals": ["Strength", "Endurance", "Weight Loss"],
+    "difficulty_tier": 1,
+    "impact_level": "Low",
+    "equipment_needed": ["Wall"],
+    "parameters": {
+      "beginner": { "sets": 3, "duration_sec": 30, "rest_sec": 60 },
+      "intermediate": { "sets": 3, "duration_sec": 60, "rest_sec": 45 },
+      "advanced": { "sets": 4, "duration_sec": 90, "rest_sec": 30 }
+    },
+    "image_name": "wall_sit_anim"
+  },
+  {
+    "id": "ex_007",
+    "name": "High Knees",
+    "description": "Running in place bringing knees high to chest.",
+    "muscle_group": ["Legs", "Cardio"],
+    "type": "Cardio",
+    "primary_goals": ["Weight Loss", "Endurance"],
+    "difficulty_tier": 1,
+    "impact_level": "High",
+    "equipment_needed": ["None"],
+    "parameters": {
+      "beginner": { "sets": 3, "duration_sec": 20, "rest_sec": 45 },
+      "intermediate": { "sets": 4, "duration_sec": 30, "rest_sec": 30 },
+      "advanced": { "sets": 5, "duration_sec": 45, "rest_sec": 20 }
+    },
+    "image_name": "high_knees_anim"
+  },
+  {
+    "id": "ex_008",
+    "name": "Glute Bridges",
+    "description": "Lying on back, lifting hips to ceiling. Great for posterior chain.",
+    "muscle_group": ["Glutes", "Hamstrings"],
+    "type": "Strength",
+    "primary_goals": ["Strength", "Flexibility"],
+    "difficulty_tier": 1,
+    "impact_level": "Low",
+    "equipment_needed": ["Mat"],
+    "parameters": {
+      "beginner": { "sets": 3, "reps": "10", "rest_sec": 45 },
+      "intermediate": { "sets": 3, "reps": "15", "rest_sec": 30 },
+      "advanced": { "sets": 4, "reps": "20", "rest_sec": 20 }
+    },
+    "image_name": "glute_bridge_anim"
+  },
+  {
+    "id": "ex_009",
+    "name": "Child's Pose",
+    "description": "Resting pose to stretch hips, thighs, and ankles.",
+    "muscle_group": ["Back", "Hips"],
+    "type": "Flexibility",
+    "primary_goals": ["Flexibility", "Recovery"],
+    "difficulty_tier": 1,
+    "impact_level": "Low",
+    "equipment_needed": ["Mat"],
+    "parameters": {
+      "beginner": { "sets": 1, "duration_sec": 30, "rest_sec": 0 },
+      "intermediate": { "sets": 1, "duration_sec": 45, "rest_sec": 0 },
+      "advanced": { "sets": 1, "duration_sec": 60, "rest_sec": 0 }
+    },
+    "image_name": "child_pose_anim"
+  },
+  {
+    "id": "ex_010",
+    "name": "Mountain Climbers",
+    "description": "Plank position running. Intense core and cardio.",
+    "muscle_group": ["Abs", "Cardio", "Shoulders"],
+    "type": "HIIT",
+    "primary_goals": ["Weight Loss", "Endurance"],
+    "difficulty_tier": 2,
+    "impact_level": "High",
+    "equipment_needed": ["None"],
+    "parameters": {
+      "beginner": { "sets": 3, "duration_sec": 20, "rest_sec": 45 },
+      "intermediate": { "sets": 4, "duration_sec": 30, "rest_sec": 30 },
+      "advanced": { "sets": 5, "duration_sec": 45, "rest_sec": 15 }
+    },
+    "image_name": "mountain_climber_anim"
+  }
+]

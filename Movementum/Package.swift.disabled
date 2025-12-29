@@ -1,0 +1,25 @@
+// swift-tools-version:5.7
+import PackageDescription
+
+// This package file is provided to make it easier to add Lottie as a Swift
+// package dependency in this repo. Xcode can also add the package through
+// File → Add Packages... using the same URL.
+
+let package = Package(
+    name: "MovementumDependencies",
+    platforms: [.iOS(.v15)],
+    products: [.library(name: "MovementumDependencies", targets: ["MovementumDependencies"])],
+    dependencies: [
+        // Lottie animation framework
+        .package(url: "https://github.com/airbnb/lottie-ios.git", from: "4.4.0")
+    ],
+    targets: [
+        .target(
+            name: "MovementumDependencies",
+            dependencies: [
+                .product(name: "Lottie", package: "lottie-ios")
+            ],
+            path: ""
+        )
+    ]
+)

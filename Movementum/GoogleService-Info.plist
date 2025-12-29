@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>API_KEY</key>
+	<string>AIzaSyC6962MNNA0av_ty0hLs216r6GcMhzgDJQ</string>
+	<key>BUNDLE_ID</key>
+	<string>com.suhail.Movementum</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.983124635033-akdvqvt4uscvlajmnk2uep15hao2upm9</string>
+			</array>
+		</dict>
+	</array>
+	<key>CLIENT_ID</key>
+	<string>983124635033-akdvqvt4uscvlajmnk2uep15hao2upm9.apps.googleusercontent.com</string>
+	<key>GCM_SENDER_ID</key>
+	<string>983124635033</string>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:983124635033:ios:6a1d6ea6a6ca625612b708</string>
+	<key>IS_ADS_ENABLED</key>
+	<false/>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false/>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true/>
+	<key>IS_GCM_ENABLED</key>
+	<true/>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true/>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>PROJECT_ID</key>
+	<string>movementum-v2</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.983124635033-akdvqvt4uscvlajmnk2uep15hao2upm9</string>
+	<key>STORAGE_BUCKET</key>
+	<string>movementum-v2.firebasestorage.app</string>
+</dict>
+</plist>
