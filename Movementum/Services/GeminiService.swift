@@ -99,49 +99,69 @@ struct GeminiService {
     }
 
     func analyze(image: UIImage) async -> Result<NutritionInfo, AnalysisError> {
-        // --- UPDATED: Retrieve API Key from Environment Variable ---
-        guard let apiKey = ProcessInfo.processInfo.environment["GEMINI_API_KEY"], !apiKey.isEmpty else {
-            print("⚠️ Critical: GEMINI_API_KEY not found in Environment Variables (Scheme).")
-            return .failure(.apiKeyNotSet)
-        }
-
-        let model = GenerativeModel(name: "gemini-2.5-flash", apiKey: apiKey)
-        let prompt = """
-        Analyze the dish in this image. You are an expert nutritionist specializing in Indian, particularly South Indian and Tamil, cuisine.
-        Identify the main dish using its common local name. Provide your best estimate of its nutritional content.
-        Respond ONLY with a valid JSON object matching this structure:
-        {"dishName": String, "calories": Int, "protein": Double, "fat": Double}.
-        Do not include any markdown formatting, backticks, or any other text outside the JSON object.
-        For example, if you see a dosa, respond like this: {"dishName": "Dosa with Sambar", "calories": 250, "protein": 8.5, "fat": 10.2}
-        """
-
-        do {
-            let rawText = try await generateWithRetry(model: model, prompt: prompt, image: image)
-            if let firstBrace = rawText.firstIndex(of: "{"), let lastBrace = rawText.lastIndex(of: "}") {
-                let jsonString = String(rawText[firstBrace...lastBrace])
-                if let jsonData = jsonString.data(using: .utf8) {
-                    do {
-                        let nutritionInfo = try JSONDecoder().decode(NutritionInfo.self, from: jsonData)
-                        return .success(nutritionInfo)
-                    } catch {
-                        // parsing failed — include rawText in error to aid debugging
-                        print("Gemini analyze: JSON decode failed. rawText=\n\(rawText)")
-                        return .failure(.jsonParsingError("Failed to decode JSON. Raw: \(rawText.prefix(400))"))
-                    }
-                } else {
-                    return .failure(.jsonParsingError("Could not convert model text to data. Raw: \(rawText.prefix(400))"))
-                }
-            } else {
-                // No JSON braces found — return error with model text snippet for debugging
-                print("Gemini analyze: no JSON braces in model response: \(rawText)")
-                return .failure(.jsonParsingError(String(rawText.prefix(400))))
+            // 1. Check API Key
+            guard let apiKey = ProcessInfo.processInfo.environment["GEMINI_API_KEY"], !apiKey.isEmpty else {
+                print("⚠️ Critical: GEMINI_API_KEY not found in Environment Variables.")
+                return .failure(.apiKeyNotSet)
             }
-        } catch let err as AnalysisError {
-            return .failure(err)
-        } catch {
-            return .failure(.apiError(error.localizedDescription))
+
+            let model = GenerativeModel(name: "gemini-2.5-flash", apiKey: apiKey)
+            
+            // 2. Strict Prompt
+            let prompt = """
+            Analyze this food image. Identify the main dish (common name).
+            Estimate: calories (Int), protein (Double), fat (Double).
+            Respond ONLY with this JSON structure:
+            {"dishName": "Name", "calories": 0, "protein": 0.0, "fat": 0.0}
+            """
+
+            do {
+                let rawText = try await generateWithRetry(model: model, prompt: prompt, image: image)
+                
+                // 3. Extract JSON String (Clean Markdown)
+                guard let firstBrace = rawText.firstIndex(of: "{"),
+                      let lastBrace = rawText.lastIndex(of: "}") else {
+                    return .failure(.jsonParsingError("No JSON braces found. Raw: \(rawText)"))
+                }
+                
+                let jsonString = String(rawText[firstBrace...lastBrace])
+                guard let jsonData = jsonString.data(using: .utf8) else {
+                    return .failure(.jsonParsingError("Data conversion failed"))
+                }
+
+                // 4. Decode to a Temporary Struct first (Safest Fix)
+                // This ensures we catch the data exactly as Gemini sends it, regardless of your NutritionInfo definition.
+                struct GeminiResponse: Codable {
+                    let dishName: String
+                    let calories: Int
+                    let protein: Double
+                    let fat: Double
+                }
+                
+                do {
+                    let decoded = try JSONDecoder().decode(GeminiResponse.self, from: jsonData)
+                    
+                    // 5. Map to your existing NutritionInfo struct
+                    // We use the same initializer you used in heuristicFromText
+                    let info = NutritionInfo(
+                        dishName: decoded.dishName,
+                        calories: decoded.calories,
+                        protein: decoded.protein,
+                        fat: decoded.fat
+                    )
+                    return .success(info)
+                    
+                } catch {
+                    print("❌ Decoding Mismatch: \(error)")
+                    return .failure(.jsonParsingError("Type mismatch. Gemini sent: \(jsonString)"))
+                }
+
+            } catch let err as AnalysisError {
+                return .failure(err)
+            } catch {
+                return .failure(.apiError(error.localizedDescription))
+            }
         }
-    }
 
     // New: OCR (Vision) -> Gemini (text) pipeline
     func analyzeUsingOCR(image: UIImage) async -> Result<NutritionInfo, AnalysisError> {
