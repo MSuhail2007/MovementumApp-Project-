@@ -1,254 +1,326 @@
+// Replaced with diary UI that supports adding meals (calories/protein/fat/carbs/quantity) and writes nutrients to HealthKit.
 import SwiftUI
-import PhotosUI
-import GoogleGenerativeAI // Re-added the Google AI library
+import UIKit
 
-// An Identifiable struct to safely pass the meal type to the sheet.
-struct MealSheetIdentifier: Identifiable {
-    let id: String
-}
+
 
 struct DiaryView: View {
     @EnvironmentObject var diaryViewModel: DiaryViewModel
-    
-    @State private var selectedDate = Date()
-    @State private var selectedMealIdentifier: MealSheetIdentifier?
-    @State private var scanningMealType: String? // Added state to remember which meal initiated the scan
-    
-    // --- SCANNER FUNCTIONALITY ---
-    @State private var selectedImage: UIImage?
-    @State private var isGalleryPickerShowing = false
-    @State private var isCameraPickerShowing = false
+    @EnvironmentObject var healthManager: HealthStoreManager
+
+    @State private var selectedDate: Date = Date()
+    @State private var isPresentingAddMeal = false
+    @State private var selectedMealType: String = "Breakfast"
+
+    // Scanner / image picker state
+    @State private var isShowingImagePicker = false
+    @State private var imagePickerSource: UIImagePickerController.SourceType = .camera
+    @State private var pickedImage: UIImage? = nil
     @State private var isAnalyzing = false
-    @State private var nutritionInfo: NutritionInfo?
-    @State private var analysisError: AnalysisError?
-    
-    // --- The app now uses the Gemini service ---
-    private let geminiService = GeminiService()
-    private let mealTypes = ["Breakfast", "Lunch", "Dinner", "Snacks"]
+    @State private var scannedNutrition: NutritionInfo? = nil
+    @State private var isShowingScannedResult = false
+    @State private var scannedError: String? = nil
+
+    private var today: Date { Date() }
+    private var todayStart: Date { Calendar.current.startOfDay(for: today) }
+    private func isToday(_ date: Date) -> Bool { Calendar.current.isDate(date, inSameDayAs: today) }
+    private func isFuture(_ date: Date) -> Bool { Calendar.current.startOfDay(for: date) > todayStart }
+
+    private var weekDates: [Date] {
+        ( -3 ... 3 ).compactMap { offset in
+            Calendar.current.date(byAdding: .day, value: offset, to: selectedDate)
+        }
+    }
 
     var body: some View {
         NavigationView {
             ZStack {
-                Theme.backgroundColor.edgesIgnoringSafeArea(.all)
-                
-                VStack(spacing: 20) {
-                    // --- Removed the Scanner Buttons HStack here as per instructions ---
-                    
-                    // --- The Compact Date Selector ---
-                    CompactDateSelectorView(selectedDate: $selectedDate)
-                    
-                    // --- List of Diary Entries ---
-                    List {
-                        let workoutLogs = diaryViewModel.fetchWorkoutLogs(for: selectedDate)
-                        if !workoutLogs.isEmpty {
-                            Section(header: headerView(title: "Workouts", icon: "figure.walk.circle.fill")) {
-                                ForEach(workoutLogs) { log in
-                                    WorkoutLogRowView(log: log)
-                                }
-                            }
-                        }
-                        
-                        ForEach(mealTypes, id: \.self) { mealType in
-                            let entriesForMeal = diaryViewModel.fetchEntries(for: selectedDate, mealType: mealType)
-                            Section(header: mealHeaderView(mealType: mealType, entries: entriesForMeal)) {
-                                if entriesForMeal.isEmpty {
-                                    Text("No entries yet.")
-                                        .foregroundColor(Theme.secondaryTextColor)
-                                } else {
-                                    ForEach(entriesForMeal) { entry in
-                                        FoodEntryRow(entry: entry)
+                Theme.backgroundGradient.edgesIgnoringSafeArea(.all)
+
+                ScrollView {
+                    VStack(spacing: 18) {
+                        // Week selector
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 12) {
+                                ForEach(weekDates, id: \ .self) { date in
+                                    DateChip(date: date, isSelected: Calendar.current.isDate(date, inSameDayAs: selectedDate)) {
+                                        withAnimation { selectedDate = date }
                                     }
                                 }
                             }
+                            .padding(.horizontal, 16)
+                            .padding(.top, 18)
                         }
+
+                        // Single future-date banner (only once)
+                        if isFuture(selectedDate) {
+                            HStack(spacing: 12) {
+                                Image(systemName: "calendar.badge.exclamationmark")
+                                    .foregroundColor(Theme.accentColor)
+                                Text("You can't add entries for future dates. Come back on the selected day to log meals.")
+                                    .foregroundColor(Theme.secondaryTextColor)
+                                    .font(.subheadline)
+                                Spacer()
+                            }
+                            .padding()
+                            .background(Theme.surface)
+                            .cornerRadius(14)
+                            .padding(.horizontal, 16)
+                        }
+
+                        // Meal sections
+                        VStack(spacing: 20) {
+                            MealSection(title: "Breakfast",
+                                        entries: diaryViewModel.fetchEntries(for: selectedDate, mealType: "Breakfast"),
+                                        onAdd: { openAddForm(meal: "Breakfast") },
+                                        onDelete: { id in diaryViewModel.remove(entryID: id) },
+                                        canAdd: isToday(selectedDate),
+                                        onCamera: { openCamera(meal: "Breakfast") },
+                                        onGallery: { openGallery(meal: "Breakfast") },
+                                        selectedDate: selectedDate)
+
+                            MealSection(title: "Lunch",
+                                        entries: diaryViewModel.fetchEntries(for: selectedDate, mealType: "Lunch"),
+                                        onAdd: { openAddForm(meal: "Lunch") },
+                                        onDelete: { id in diaryViewModel.remove(entryID: id) },
+                                        canAdd: isToday(selectedDate),
+                                        onCamera: { openCamera(meal: "Lunch") },
+                                        onGallery: { openGallery(meal: "Lunch") },
+                                        selectedDate: selectedDate)
+
+                            MealSection(title: "Dinner",
+                                        entries: diaryViewModel.fetchEntries(for: selectedDate, mealType: "Dinner"),
+                                        onAdd: { openAddForm(meal: "Dinner") },
+                                        onDelete: { id in diaryViewModel.remove(entryID: id) },
+                                        canAdd: isToday(selectedDate),
+                                        onCamera: { openCamera(meal: "Dinner") },
+                                        onGallery: { openGallery(meal: "Dinner") },
+                                        selectedDate: selectedDate)
+
+                            MealSection(title: "Snacks",
+                                        entries: diaryViewModel.fetchEntries(for: selectedDate, mealType: "Snacks"),
+                                        onAdd: { openAddForm(meal: "Snacks") },
+                                        onDelete: { id in diaryViewModel.remove(entryID: id) },
+                                        canAdd: isToday(selectedDate),
+                                        onCamera: { openCamera(meal: "Snacks") },
+                                        onGallery: { openGallery(meal: "Snacks") },
+                                        selectedDate: selectedDate)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 32)
                     }
-                    .listStyle(.insetGrouped)
-                    .background(Theme.backgroundColor)
-                    .scrollContentBackground(.hidden)
                 }
-                
-                // The loading overlay for the scanner
+
+                // Progress overlay while analyzing
                 if isAnalyzing {
-                    Color.black.opacity(0.7).edgesIgnoringSafeArea(.all)
-                    VStack {
-                        ProgressView().progressViewStyle(CircularProgressViewStyle(tint: Theme.textColor)).scaleEffect(2)
-                        Text("Analyzing").foregroundColor(Theme.textColor).font(.title2).bold().padding(.top)
+                    Color.black.opacity(0.25).edgesIgnoringSafeArea(.all)
+                    ProgressView("Analyzing image...")
+                        .padding()
+                        .background(Theme.surface)
+                        .cornerRadius(12)
+                        .shadow(radius: 8)
+                }
+            }
+            .navigationBarTitle("Diary & Scanner", displayMode: .inline)
+            .sheet(isPresented: $isPresentingAddMeal) {
+                AddMealView(date: selectedDate, mealType: selectedMealType)
+                    .environmentObject(diaryViewModel)
+                    .environmentObject(healthManager)
+            }
+            .sheet(isPresented: $isShowingImagePicker, onDismiss: didDismissImagePicker) {
+                ImagePicker(sourceType: imagePickerSource, selectedImage: $pickedImage, isPresented: $isShowingImagePicker)
+            }
+            .sheet(isPresented: $isShowingScannedResult) {
+                if let info = scannedNutrition {
+                    ScannedResultView(image: pickedImage, initialInfo: info, mealType: selectedMealType, date: selectedDate) { newEntry in
+                        diaryViewModel.add(entry: newEntry)
+                        healthManager.saveFoodEntry(newEntry) { error in
+                            if let err = error { print("HealthKit save error: \(err)") }
+                        }
+                        isShowingScannedResult = false
                     }
+                    .environmentObject(diaryViewModel)
+                } else {
+                    Text("No scanned data")
                 }
             }
-            .navigationTitle("Diary & Scanner")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .principal) {
-                    Text("Diary & Scanner").bold().foregroundColor(Theme.textColor)
+            .alert("Scan failed", isPresented: Binding<Bool>(get: { scannedError != nil }, set: { if !$0 { scannedError = nil } })) {
+                Button("Retry") {
+                    // retry the last scan by re-invoking the pipeline
+                    Task { await retryLastScan() }
                 }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text(scannedError ?? "Unknown error")
             }
-        }
-        // --- All the necessary sheet modifiers ---
-        .sheet(isPresented: $isGalleryPickerShowing) { ImagePicker(selectedImage: $selectedImage) }
-        .fullScreenCover(isPresented: $isCameraPickerShowing) { CameraPicker(selectedImage: $selectedImage).ignoresSafeArea() }
-        .sheet(item: $nutritionInfo) { info in
-            NutritionInfoView(info: info, preselectedMealType: scanningMealType).environmentObject(diaryViewModel)
-        }
-        .alert(item: $analysisError) { error in
-            Alert(title: Text(error.errorDescription ?? "Error"), message: Text(error.recoverySuggestion ?? "An unknown error occurred."), dismissButton: .default(Text("OK")))
-        }
-        .sheet(item: $selectedMealIdentifier) { identifier in
-            AddMealView(date: selectedDate, mealType: identifier.id).environmentObject(diaryViewModel)
-        }
-        .onChange(of: selectedImage) {
-            if selectedImage != nil { analyzeSelectedImage() }
         }
     }
-    
-    // --- This function now calls the Gemini service ---
-    private func analyzeSelectedImage() {
-        guard let image = selectedImage else { return }
+
+    // MARK: - Actions
+    private func openAddForm(meal: String) {
+        guard isToday(selectedDate) else { return }
+        selectedMealType = meal
+        isPresentingAddMeal = true
+    }
+
+    private func openCamera(meal: String) {
+        guard isToday(selectedDate) else { return }
+        selectedMealType = meal
+        imagePickerSource = .camera
+        isShowingImagePicker = true
+    }
+
+    private func openGallery(meal: String) {
+        guard isToday(selectedDate) else { return }
+        selectedMealType = meal
+        imagePickerSource = .photoLibrary
+        isShowingImagePicker = true
+    }
+
+    private func didDismissImagePicker() {
+        guard let img = pickedImage else { return }
+        scannedNutrition = nil
+        scannedError = nil
         isAnalyzing = true
+
         Task {
-            let result = await geminiService.analyze(image: image)
+            let result = await GeminiService().analyze(image: img)
+            await MainActor.run {
+                isAnalyzing = false
+                switch result {
+                case .success(let info):
+                    scannedNutrition = info
+                    isShowingScannedResult = true
+                case .failure(let err):
+                    scannedError = err.localizedDescription
+                }
+            }
+        }
+    }
+
+    // Retry helper: re-run the pipeline on the last picked image
+    private func retryLastScan() async {
+        guard let img = pickedImage else { return }
+        await MainActor.run { scannedError = nil; isAnalyzing = true }
+        let result = await GeminiService().analyzeUsingOCR(image: img)
+        await MainActor.run {
             isAnalyzing = false
             switch result {
             case .success(let info):
-                self.selectedImage = nil
-                self.nutritionInfo = info
-                // Keep current scanningMealType unchanged on success
-            case .failure(let error):
-                self.scanningMealType = nil
-                self.analysisError = error
+                scannedNutrition = info
+                isShowingScannedResult = true
+            case .failure:
+                // still failed; show message
+                scannedError = "Retry failed. Try 'Use OCR-only' or check your network/API key."
             }
-        }
-    }
-    
-    private func headerView(title: String, icon: String) -> some View {
-        HStack { Image(systemName: icon); Text(title) }.foregroundColor(Theme.textColor).font(.headline)
-    }
-    
-    private func mealHeaderView(mealType: String, entries: [FoodEntry]) -> some View {
-        HStack(spacing: 12) {
-            Text(mealType)
-            Spacer()
-            if Calendar.current.isDateInToday(selectedDate) {
-                // Per-meal scan buttons
-                Button(action: {
-                    self.scanningMealType = mealType
-                    self.isCameraPickerShowing = true
-                }) {
-                    Image(systemName: "camera.fill")
-                }
-                .accessibilityLabel("Take Photo for \(mealType)")
-                .foregroundColor(Theme.accentColor)
-
-                Button(action: {
-                    self.scanningMealType = mealType
-                    self.isGalleryPickerShowing = true
-                }) {
-                    Image(systemName: "photo.fill.on.rectangle.fill")
-                }
-                .accessibilityLabel("Scan Photo for \(mealType)")
-                .foregroundColor(Theme.accentColor)
-
-                Button(action: { self.selectedMealIdentifier = MealSheetIdentifier(id: mealType) }) {
-                    Image(systemName: "plus.circle.fill")
-                }
-                .accessibilityLabel("Add entry to \(mealType)")
-                .foregroundColor(Theme.accentColor)
-            }
-        }
-        .foregroundColor(Theme.textColor)
-        .font(.headline)
-    }
-}
-
-// --- ALL HELPER VIEWS AND STRUCTS ARE NOW IN THIS FILE ---
-
-// --- Helper Views for the Compact Date Selector ---
-struct CompactDateSelectorView: View {
-    @Binding var selectedDate: Date
-    
-    private var dateRange: [Date] {
-        (0..<7).map { day in
-            Calendar.current.date(byAdding: .day, value: -day, to: Date())!
-        }.reversed()
-    }
-    
-    var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 10) {
-                ForEach(dateRange, id: \.self) { date in
-                    DateButton(
-                        date: date,
-                        isSelected: Calendar.current.isDate(date, inSameDayAs: selectedDate)
-                    ) {
-                        withAnimation(.spring()) {
-                            selectedDate = date
-                        }
-                    }
-                }
-            }
-            .padding(.horizontal)
         }
     }
 }
 
-struct DateButton: View {
+// MARK: - Date Chip
+struct DateChip: View {
     let date: Date
     let isSelected: Bool
-    let action: () -> Void
-    
-    private var dayFormatter: DateFormatter {
-        let formatter = DateFormatter(); formatter.dateFormat = "EEE"; return formatter
+    let onSelect: () -> Void
+
+    private var dayOfWeek: String {
+        let df = DateFormatter()
+        df.dateFormat = "EEE"
+        return df.string(from: date).uppercased()
     }
-    private var numberFormatter: DateFormatter {
-        let formatter = DateFormatter(); formatter.dateFormat = "d"; return formatter
+    private var dayNumber: String {
+        let df = DateFormatter()
+        df.dateFormat = "d"
+        return df.string(from: date)
     }
-    
-    private var label: String {
-        if Calendar.current.isDateInToday(date) { return "Today" }
-        return dayFormatter.string(from: date)
-    }
-    
+
     var body: some View {
-        Button(action: action) {
-            VStack {
-                Text(label.uppercased())
-                    .font(.caption).bold()
-                
-                Text(numberFormatter.string(from: date))
-                    .font(.title2).bold()
-            }
-            .foregroundColor(isSelected ? .white : Theme.textColor)
-            .frame(width: 60, height: 70)
-            .background(isSelected ? AnyShapeStyle(Theme.accentColor.gradient) : AnyShapeStyle(Theme.secondaryBackgroundColor))
-            .cornerRadius(15)
+        VStack(spacing: 6) {
+            Text(dayOfWeek).font(.caption).foregroundColor(isSelected ? .white : Theme.secondaryTextColor)
+            Text(dayNumber).font(.title2).fontWeight(.bold).foregroundColor(isSelected ? .white : Theme.textColor)
         }
+        .frame(width: 68, height: 68)
+        .background(Group { if isSelected { Theme.accentGradient } else { Theme.pillBackground } })
+        .cornerRadius(14)
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(isSelected ? Color.clear : Theme.pillBorder, lineWidth: 1)
+        )
+        .shadow(color: isSelected ? Theme.cardShadow.opacity(0.25) : Color.clear, radius: 6, x: 0, y: 6)
+        .onTapGesture(perform: onSelect)
     }
 }
 
-struct ScannerButton: View {
-    let iconName: String, title: String, action: () -> Void
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 8) {
-                Image(systemName: iconName).font(.largeTitle)
-                Text(title).font(.headline)
-            }
-            .foregroundColor(Theme.accentColor)
-            .frame(maxWidth: .infinity, minHeight: 120)
-            .background(Theme.secondaryBackgroundColor)
-            .clipShape(RoundedRectangle(cornerRadius: 20))
-        }
-    }
-}
+// MARK: - Meal Section (keeps layout)
+struct MealSection: View {
+    let title: String
+    let entries: [FoodEntry]
+    let onAdd: () -> Void
+    let onDelete: (UUID) -> Void
+    let canAdd: Bool
+    let onCamera: () -> Void
+    let onGallery: () -> Void
+    let selectedDate: Date
 
-struct WorkoutLogRowView: View {
-    let log: WorkoutLog
     var body: some View {
-        HStack {
-            Image(systemName: "flame.fill").foregroundColor(Theme.calorieColor)
-            VStack(alignment: .leading) {
-                Text(log.name).font(.headline)
-                Text(log.duration).font(.subheadline).foregroundColor(Theme.secondaryTextColor)
+        VStack(spacing: 12) {
+            HStack {
+                Text(title).font(.headline).foregroundColor(Theme.textColor)
+                Spacer()
+                HStack(spacing: 12) {
+                    Button(action: onCamera) {
+                        Image(systemName: "camera.fill")
+                            .foregroundColor(canAdd ? Theme.accentColor : Theme.secondaryTextColor.opacity(0.5))
+                            .padding(8)
+                            .background(Theme.surface)
+                            .cornerRadius(8)
+                    }
+                    .disabled(!canAdd)
+
+                    Button(action: onGallery) {
+                        Image(systemName: "photo.on.rectangle")
+                            .foregroundColor(canAdd ? Theme.accentColor : Theme.secondaryTextColor.opacity(0.5))
+                            .padding(8)
+                            .background(Theme.surface)
+                            .cornerRadius(8)
+                    }
+                    .disabled(!canAdd)
+
+                    Button(action: onAdd) {
+                        Image(systemName: "plus")
+                            .foregroundColor(.white)
+                            .padding(8)
+                            .background(canAdd ? Theme.accentColor : Theme.pillBackground)
+                            .cornerRadius(10)
+                    }
+                    .disabled(!canAdd)
+                }
+            }
+
+            if entries.isEmpty {
+                HStack {
+                    Text("No entries yet.")
+                        .foregroundColor(Theme.secondaryTextColor)
+                        .padding(.vertical, 18)
+                        .padding(.horizontal, 20)
+                    Spacer()
+                }
+                .background(Theme.surface)
+                .cornerRadius(20)
+                .shadow(color: Theme.softShadow.opacity(0.06), radius: 6, x: 0, y: 4)
+            } else {
+                VStack(spacing: 8) {
+                    ForEach(entries) { entry in
+                        FoodEntryRow(entry: entry)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 6)
+                            .background(Theme.surface)
+                            .cornerRadius(14)
+                            .contextMenu {
+                                Button(role: .destructive) { onDelete(entry.id) } label: { Label("Delete", systemImage: "trash") }
+                            }
+                    }
+                }
             }
         }
     }
@@ -259,26 +331,35 @@ struct FoodEntryRow: View {
     var body: some View {
         HStack {
             VStack(alignment: .leading) {
-                Text(entry.name).font(.headline)
-                Text("Protein: \(String(format: "%.1f", entry.protein))g").font(.subheadline).foregroundColor(Theme.secondaryTextColor)
+                Text(entry.name).font(.headline).foregroundColor(Theme.textColor)
+                Text(entry.mealType).font(.subheadline).foregroundColor(Theme.secondaryTextColor)
+                HStack(spacing: 12) {
+                    Text("Cal: \(entry.calories) kcal").font(.caption).foregroundColor(Theme.secondaryTextColor)
+                    Text("P: \(String(format: "%.1f", entry.protein))g").font(.caption).foregroundColor(Theme.secondaryTextColor)
+                    Text("F: \(String(format: "%.1f", entry.fat))g").font(.caption).foregroundColor(Theme.secondaryTextColor)
+                    Text("C: \(String(format: "%.1f", entry.carbs))g").font(.caption).foregroundColor(Theme.secondaryTextColor)
+                    Text("Qty: \(String(format: "%.1f", entry.quantity))").font(.caption).foregroundColor(Theme.secondaryTextColor)
+                }
             }
             Spacer()
-            Text("\(entry.calories) kcal").fontWeight(.medium)
         }
+        .padding(.vertical, 8)
     }
 }
 
 struct AddMealView: View {
     @Environment(\.dismiss) var dismiss
     @EnvironmentObject var diaryViewModel: DiaryViewModel
+    @EnvironmentObject var healthManager: HealthStoreManager
     let date: Date, mealType: String
-    
-    // --- THIS IS THE FIX ---
-    // Each @State variable is now declared on its own separate line.
+
     @State private var foodName: String = ""
     @State private var calories: String = ""
     @State private var protein: String = ""
-    
+    @State private var fat: String = ""
+    @State private var carbs: String = ""
+    @State private var quantity: String = "1.0"
+
     var body: some View {
         NavigationView {
             ZStack {
@@ -288,208 +369,142 @@ struct AddMealView: View {
                         TextField("Food Name", text: $foodName)
                         TextField("Calories (kcal)", text: $calories).keyboardType(.numberPad)
                         TextField("Protein (g)", text: $protein).keyboardType(.decimalPad)
-                    }.listRowBackground(Theme.secondaryBackgroundColor)
-                }.scrollContentBackground(.hidden)
+                        TextField("Fat (g)", text: $fat).keyboardType(.decimalPad)
+                        TextField("Carbohydrates (g)", text: $carbs).keyboardType(.decimalPad)
+                        TextField("Quantity (g or servings)", text: $quantity).keyboardType(.decimalPad)
+                    }
+                    .listRowBackground(Theme.secondaryBackgroundColor)
+                }
+                .scrollContentBackground(.hidden)
             }
-            .navigationTitle("Add \(mealType)").navigationBarTitleDisplayMode(.inline)
+            .navigationTitle("Add \(mealType)")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .principal) { Text("Add \(mealType)").bold().foregroundColor(Theme.textColor) }
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() }.foregroundColor(Theme.accentColor) }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") { saveMeal(); dismiss() }
-                    .disabled(foodName.isEmpty || calories.isEmpty || protein.isEmpty).foregroundColor(Theme.accentColor)
+                        .disabled(foodName.isEmpty || calories.isEmpty)
+                        .foregroundColor(Theme.accentColor)
                 }
             }
         }
     }
+
     private func saveMeal() {
-        let entry = FoodEntry(name: foodName, calories: Int(calories) ?? 0, protein: Double(protein) ?? 0.0, mealType: mealType, date: date)
+        let entry = FoodEntry(name: foodName,
+                              calories: Int(calories) ?? 0,
+                              protein: Double(protein) ?? 0.0,
+                              fat: Double(fat) ?? 0.0,
+                              carbs: Double(carbs) ?? 0.0,
+                              quantity: Double(quantity) ?? 1.0,
+                              mealType: mealType,
+                              date: date)
         diaryViewModel.add(entry: entry)
-    }
-}
-
-struct NutritionInfoView: View {
-    @Environment(\.dismiss) var dismiss
-    @EnvironmentObject var diaryViewModel: DiaryViewModel
-    let info: NutritionInfo
-    let preselectedMealType: String? // Added property as per instructions
-    @State private var wasAdded = false
-    @State private var isMealTypeSelectorShowing = false
-    var body: some View {
-        NavigationView {
-            ZStack {
-                Theme.backgroundColor.edgesIgnoringSafeArea(.all)
-                VStack(spacing: 24) {
-                    Text(info.dishName).font(.largeTitle).fontWeight(.bold).multilineTextAlignment(.center).foregroundColor(Theme.textColor)
-                    VStack(spacing: 16) {
-                        NutritionRow(label: "Calories", value: "\(info.calories)", icon: "flame.fill", color: Theme.calorieColor)
-                        NutritionRow(label: "Protein", value: "\(String(format: "%.1f", info.protein)) g", icon: "bolt.heart.fill", color: .red)
-                        NutritionRow(label: "Fat", value: "\(String(format: "%.1f", info.fat)) g", icon: "drop.fill", color: .yellow)
-                    }.padding().background(Theme.secondaryBackgroundColor).cornerRadius(16)
-                    Spacer()
-                    Button(action: {
-                        if let meal = preselectedMealType {
-                            addEntryToDiary(mealType: meal)
-                        } else {
-                            isMealTypeSelectorShowing = true
-                        }
-                    }) {
-                        let title = wasAdded ? "Added to Diary!" : (preselectedMealType != nil ? "Add to Today's \(preselectedMealType!)" : "Add to Today's Diary")
-                        Label(title, systemImage: wasAdded ? "checkmark.circle.fill" : "plus.circle.fill")
-                            .modifier(ActionButtonStyle())
-                    }
-                    .disabled(wasAdded)
-                    Button(wasAdded ? "Close" : "Done") {
-                        dismiss()
-                    }
-                    .padding(.top, 8)
-                    .foregroundColor(Theme.accentColor)
-                }.padding()
-            }
-            .navigationTitle("Nutrition Facts").navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .principal) { Text("Nutrition Facts").bold().foregroundColor(Theme.textColor) }
-            }
-            .confirmationDialog("Add to which meal?", isPresented: $isMealTypeSelectorShowing, titleVisibility: .visible) {
-                Button("Breakfast") { addEntryToDiary(mealType: "Breakfast") }
-                Button("Lunch") { addEntryToDiary(mealType: "Lunch") }
-                Button("Dinner") { addEntryToDiary(mealType: "Dinner") }
-                Button("Snacks") { addEntryToDiary(mealType: "Snacks") }
+        healthManager.saveFoodEntry(entry) { error in
+            if let err = error {
+                print("Failed to save food entry to HealthKit: \(err)")
+            } else {
+                print("Saved food entry to HealthKit")
             }
         }
-        .onDisappear {
-            // cleared in parent via sheet dismissal
-        }
-    }
-    func addEntryToDiary(mealType: String) {
-        let entry = FoodEntry(name: info.dishName, calories: info.calories, protein: info.protein, fat: info.fat, carbs: 0.0, mealType: mealType, date: Date())
-        diaryViewModel.add(entry: entry)
-        wasAdded = true
     }
 }
 
-struct NutritionRow: View {
-    let label: String, value: String, icon: String, color: Color
-    var body: some View {
-        HStack {
-            Image(systemName: icon).font(.title2).foregroundColor(color).frame(width: 40)
-            Text(label).font(.headline)
-            Spacer()
-            Text(value).font(.title3).fontWeight(.semibold)
-        }
-    }
+// Simple NutritionInfo used by GeminiService and scanner flows
+struct NutritionInfo: Identifiable, Codable {
+    var id = UUID()
+    let dishName: String
+    let calories: Int
+    let protein: Double
+    let fat: Double
 }
 
-struct ActionButtonStyle: ViewModifier {
-    func body(content: Content) -> some View {
-        content.padding().frame(maxWidth: .infinity).background(Theme.accentColor).foregroundColor(.black).clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous)).font(.headline).shadow(color: Theme.accentColor.opacity(0.2), radius: 2, x: 0, y: 2)
-    }
-}
-
-// --- The service is now GeminiService ---
-struct GeminiService {
-    func analyze(image: UIImage) async -> Result<NutritionInfo, AnalysisError> {
-        // --- ⚠️ PASTE YOUR NEW, FREE GEMINI API KEY HERE ---
-        let apiKey = "AIzaSyBUVXxfZy39PpHlWt5eTZxs0-UjX9rvpOM"
-        guard apiKey != "YOUR_GEMINI_API_KEY" else { return .failure(.apiKeyNotSet) }
-        
-        let model = GenerativeModel(name: "gemini-2.5-flash", apiKey: apiKey)
-        let prompt = """
-        Analyze the dish in this image. You are an expert nutritionist specializing in Indian, particularly South Indian and Tamil, cuisine.
-        Identify the main dish using its common local name. Provide your best estimate of its nutritional content.
-        Respond ONLY with a valid JSON object matching this structure:
-        {"dishName": String, "calories": Int, "protein": Double, "fat": Double}.
-        Do not include any markdown formatting, backticks, or any other text outside the JSON object.
-        For example, if you see a dosa, respond like this: {"dishName": "Dosa with Sambar", "calories": 250, "protein": 8.5, "fat": 10.2}
-        """
-        
-        do {
-            let response = try await model.generateContent(prompt, image)
-            guard let rawText = response.text else { return .failure(.responseTextMissing) }
-            guard let firstBrace = rawText.firstIndex(of: "{"),
-                  let lastBrace = rawText.lastIndex(of: "}") else {
-                return .failure(.jsonParsingError(rawText))
-            }
-            let jsonString = String(rawText[firstBrace...lastBrace])
-            guard let jsonData = jsonString.data(using: .utf8) else {
-                return .failure(.jsonParsingError(jsonString))
-            }
-            let nutritionInfo = try JSONDecoder().decode(NutritionInfo.self, from: jsonData)
-            return .success(nutritionInfo)
-        } catch {
-            return .failure(.apiError(error.localizedDescription))
-        }
-    }
-}
-
-// --- Data Models & Errors for the scanner ---
-struct NutritionInfo: Codable, Identifiable {
-    let id = UUID()
-    let dishName: String, calories: Int, protein: Double, fat: Double
-    private enum CodingKeys: String, CodingKey { case dishName, calories, protein, fat }
-}
-
-enum AnalysisError: Error, LocalizedError, Identifiable {
-    var id: String { localizedDescription }
-    case apiKeyNotSet, apiError(String), jsonParsingError(String), responseTextMissing
-    var errorDescription: String? {
-        switch self {
-        case .apiKeyNotSet: return "API Key Not Set"
-        case .apiError: return "Analysis Failed"
-        case .jsonParsingError: return "Response Error"
-        case .responseTextMissing: return "Empty Response"
-        }
-    }
-    var recoverySuggestion: String? {
-        switch self {
-        case .apiKeyNotSet: return "Please paste your Gemini API key in DiaryView.swift."
-        case .apiError(let msg): return "The request failed. Check your internet connection.\n\nDetails: \(msg)"
-        case .jsonParsingError(let raw): return "Could not understand the data from the server.\n\nResponse: \(raw)"
-        case .responseTextMissing: return "The API returned an empty response."
-        }
-    }
-}
-
-// --- UIKit Image Pickers ---
+// Minimal ImagePicker
 struct ImagePicker: UIViewControllerRepresentable {
+    let sourceType: UIImagePickerController.SourceType
     @Binding var selectedImage: UIImage?
-    @Environment(\.presentationMode) private var presentationMode
+    @Binding var isPresented: Bool
+
     func makeCoordinator() -> Coordinator { Coordinator(self) }
     func makeUIViewController(context: Context) -> UIImagePickerController {
-        let picker = UIImagePickerController(); picker.delegate = context.coordinator; return picker
+        let picker = UIImagePickerController()
+        picker.delegate = context.coordinator
+        picker.sourceType = sourceType
+        picker.allowsEditing = false
+        return picker
     }
     func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+
     class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
         let parent: ImagePicker
         init(_ parent: ImagePicker) { self.parent = parent }
         func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
-            if let image = info[.originalImage] as? UIImage { parent.selectedImage = image }
-            parent.presentationMode.wrappedValue.dismiss()
+            if let img = info[.originalImage] as? UIImage { parent.selectedImage = img }
+            parent.isPresented = false
+        }
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) { parent.isPresented = false }
+    }
+}
+
+// Scanned result editor view
+struct ScannedResultView: View {
+    @Environment(\.dismiss) var dismiss
+    @State var image: UIImage?
+    @State var name: String
+    @State var calories: String
+    @State var protein: String
+    @State var fat: String
+    let mealType: String
+    let date: Date
+    let onAdd: (FoodEntry) -> Void
+
+    init(image: UIImage?, initialInfo: NutritionInfo, mealType: String, date: Date, onAdd: @escaping (FoodEntry) -> Void) {
+        self._image = State(initialValue: image)
+        self._name = State(initialValue: initialInfo.dishName)
+        self._calories = State(initialValue: "\(initialInfo.calories)")
+        self._protein = State(initialValue: "\(initialInfo.protein)")
+        self._fat = State(initialValue: "\(initialInfo.fat)")
+        self.mealType = mealType
+        self.date = date
+        self.onAdd = onAdd
+    }
+
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 16) {
+                if let ui = image { Image(uiImage: ui).resizable().scaledToFit().frame(maxHeight: 240).cornerRadius(12) }
+                Form {
+                    TextField("Name", text: $name)
+                    TextField("Calories", text: $calories).keyboardType(.numberPad)
+                    TextField("Protein (g)", text: $protein).keyboardType(.decimalPad)
+                    TextField("Fat (g)", text: $fat).keyboardType(.decimalPad)
+                }
+            }
+            .navigationTitle("Scanned Result")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Add") {
+                        let entry = FoodEntry(name: name,
+                                              calories: Int(calories) ?? 0,
+                                              protein: Double(protein) ?? 0.0,
+                                              fat: Double(fat) ?? 0.0,
+                                              carbs: 0.0,
+                                              quantity: 1.0,
+                                              mealType: mealType,
+                                              date: date)
+                        onAdd(entry)
+                        dismiss()
+                    }
+                    .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || calories.isEmpty)
+                }
+            }
         }
     }
 }
 
-struct CameraPicker: UIViewControllerRepresentable {
-    @Binding var selectedImage: UIImage?
-    @Environment(\.presentationMode) private var presentationMode
-    func makeCoordinator() -> Coordinator { Coordinator(self) }
-    func makeUIViewController(context: Context) -> UIImagePickerController {
-        let picker = UIImagePickerController(); picker.delegate = context.coordinator; picker.sourceType = .camera; return picker
-    }
-    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
-    class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
-        let parent: CameraPicker
-        init(_ parent: CameraPicker) { self.parent = parent }
-        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
-            if let image = info[.originalImage] as? UIImage { parent.selectedImage = image }
-            parent.presentationMode.wrappedValue.dismiss()
-        }
-    }
-}
-
-
-#Preview {
-    DiaryView()
-        .preferredColorScheme(.dark)
-        .environmentObject(DiaryViewModel(isForPreview: true))
-}
+private let dateFormatter: DateFormatter = {
+    let formatter = DateFormatter()
+    formatter.dateFormat = "E\ndd"
+    return formatter
+}()

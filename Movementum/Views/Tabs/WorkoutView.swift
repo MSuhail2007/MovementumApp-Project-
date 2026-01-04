@@ -111,10 +111,16 @@ struct WorkoutView: View {
                                                 }
                                             }
                                             .scrollTargetLayout()
+                                            .background(Theme.backgroundColor)
                                         }
                                         .scrollTargetBehavior(.viewAligned)
+                                        .scrollContentBackground(.hidden)
+                                        .background(Theme.backgroundColor)
+                                        // force compositing/clipping to avoid blending artifacts from shadows/backgrounds
+                                        .compositingGroup()
+                                        .clipped()
                                         .padding(.horizontal, 20)
-                                        .frame(height: 420)
+                                        .frame(height: 340)
                                          .onAppear {
                                              scrollViewProxy.scrollTo(todayIndex, anchor: .center)
                                          }
@@ -189,34 +195,18 @@ struct WorkoutView: View {
                                      .animation(.easeIn(duration: 0.25), value: diaryViewModel.workoutLogs)
                                  }
                              }
-                             .padding(.horizontal)
+                             .background(Theme.backgroundColor)
+                              .padding(.horizontal)
 
                              Spacer()
                          }
+                         .background(Theme.backgroundColor)
                          .padding(.top, 20)
                      }
-
-                    // Floating Add Button
-//                    VStack {
-//                        Spacer()
-//                        HStack {
-//                            Spacer()
-//                            Button(action: { showingCreateRoutine = true }) {
-//                                Image(systemName: "plus")
-//                                    .font(.title2)
-//                                    .foregroundColor(.white)
-//                                    .padding()
-//                                    .background(Theme.accentColor)
-//                                    .clipShape(Circle())
-//                                    .shadow(radius: 8)
-//                            }
-//                            .padding()
-//                        }
-//                    }
-                }
-                .navigationBarHidden(true)
-            }
-            .accentColor(Theme.accentColor)
+                 }
+                 .navigationBarHidden(true)
+             }
+            .accentColor(Color.green)
             .sheet(isPresented: $showingCreateRoutine) {
                 CreateRoutineView()
                     .environmentObject(diaryViewModel)
@@ -292,14 +282,8 @@ struct WorkoutView: View {
              }
 
              // Build the week array
-             var week: [Workout] = (0..<7).map { i in
-                 if workoutIndices.contains(i) {
-                     // generate based on the profile's goal & frequency
-                     return WorkoutLibrary.shared.generateWorkout(for: profile.goal, dayIndex: i, daysPerWeek: daysPerWeek)
-                 } else {
-                     return restWorkout()
-                 }
-             }
+             // Use the WorkoutLibrary helper which returns exactly `daysPerWeek` randomized workout days
+             var week: [Workout] = WorkoutLibrary.shared.generateWeeklySchedule(for: profile)
 
              // Try to improve each planned workout by matching user's mode/difficulty using the repository + recommender
              let age: Int = {
@@ -366,118 +350,147 @@ struct CarouselCardView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading) {
-            // Title placeholder (kept small since we surface day/date at top-left)
-            if isToday {
-                Text("Today's Plan").font(.headline).bold().foregroundColor(Theme.accentColor).padding(.bottom, 5)
-            } else {
-                Text(" ").font(.headline).padding(.bottom, 5)
-            }
+        ZStack {
+            // Card background with layered rounded rectangles for depth
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(
+                    isToday
+                        ? AnyShapeStyle(LinearGradient(colors: [Theme.accentColor.opacity(0.18), Theme.accentColor.opacity(0.06)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                        : AnyShapeStyle(Theme.secondaryBackgroundColor)
+                )
+                 .shadow(color: Color.black.opacity(0.14), radius: isToday ? 10 : 6, x: 0, y: 4)
 
-            ZStack(alignment: .bottomLeading) {
-                RoundedRectangle(cornerRadius: 30).fill(isToday ? Theme.accentColor.opacity(0.15) : Theme.secondaryTextColor.opacity(0.1))
-                RoundedRectangle(cornerRadius: 30).fill(.ultraThinMaterial)
+            VStack(spacing: 8) {
+                // Header strip with weekday and date (smaller)
+                HStack(alignment: .center) {
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(weekdayFormatter.string(from: dateForThisCard))
+                            .font(.caption2).bold()
+                            .foregroundColor(Theme.secondaryTextColor)
+                        Text(dayFormatter.string(from: dateForThisCard))
+                            .font(.headline).bold()
+                            .foregroundColor(Theme.textColor)
+                    }
+                    .padding(.leading, 14)
 
-                // Top-left overlay showing weekday and date
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(weekdayFormatter.string(from: dateForThisCard))
-                        .font(.caption).bold()
-                        .foregroundColor(Theme.secondaryTextColor)
-                    Text(dayFormatter.string(from: dateForThisCard))
-                        .font(.title2).bold()
-                        .foregroundColor(Theme.textColor)
-                }
-                .padding(16)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    Spacer()
 
-                // Lottie-based completed overlay (or fallback SF Symbol if Lottie not present)
-                ZStack {
-                    if isCompleted {
-                        Color.clear
-                        LottieView(filename: "success_check", play: $playCompletionAnimation)
-                            .frame(width: 120, height: 120)
-                            .allowsHitTesting(false)
+                    // Small tag for today's plan or planned label
+                    if isToday {
+                        Text("Today")
+                            .font(.caption2).bold()
+                            .padding(.vertical, 5).padding(.horizontal, 10)
+                            .background(Theme.accentColor)
+                            .foregroundColor(.white)
+                            .clipShape(Capsule())
+                            .padding(.trailing, 12)
+                    } else {
+                        Text("Planned")
+                            .font(.caption2).bold()
+                            .padding(.vertical, 5).padding(.horizontal, 10)
+                            .background(Color.white.opacity(0.04))
+                            .foregroundColor(Theme.secondaryTextColor)
+                            .clipShape(Capsule())
+                            .padding(.trailing, 12)
                     }
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-                .allowsHitTesting(false)
+                .padding(.top, 12)
 
-                 VStack(alignment: .leading, spacing: 10) {
-                    HStack {
-                        Text(workout.name)
-                            .font(.title2).bold()
-                            .foregroundColor(Theme.textColor)
+                // Title and compact subtitle area
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(workout.name)
+                        .font(.headline).bold()
+                        .foregroundColor(Theme.textColor)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.85)
+
+                    HStack(spacing: 8) {
+                        Label(workout.duration, systemImage: "clock")
+                            .font(.caption)
+                            .foregroundColor(Theme.secondaryTextColor)
+                        Text("•")
+                            .foregroundColor(Theme.secondaryTextColor)
+                        Text(workout.difficulty)
+                            .font(.caption).bold()
+                            .foregroundColor(Theme.secondaryTextColor)
                         Spacer()
-                        if isCompleted {
-                            Image(systemName: "checkmark.seal.fill")
-                                .foregroundColor(Theme.accentColor)
+                    }
+                }
+                .padding(.horizontal, 14)
+                .padding(.top, 2)
+
+                // Small metadata row: show up to 2 exercise names as preview
+                HStack(alignment: .top, spacing: 10) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Exercises")
+                            .font(.caption2).bold()
+                            .foregroundColor(Theme.secondaryTextColor)
+                        // show first two exercise names if available
+                        ForEach(Array(workout.exercises.prefix(2).enumerated()), id: \.offset) { _, ex in
+                            Text("• \(ex.name)")
+                                .font(.caption)
+                                .foregroundColor(Theme.secondaryTextColor)
+                                .lineLimit(1)
                         }
                     }
+                    Spacer()
+                    VStack(alignment: .trailing, spacing: 6) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "bolt.fill").foregroundColor(Theme.accentColor)
+                            Text("\(workout.exercises.count)")
+                                .font(.caption)
+                                .foregroundColor(Theme.secondaryTextColor)
+                        }
 
-                    HStack {
-                        Spacer()
-                        Text(workout.duration)
-                            .font(.subheadline)
+                        Text(workout.isLowImpact ? "Low impact" : "Standard")
+                            .font(.caption2)
                             .foregroundColor(Theme.secondaryTextColor)
                     }
+                }
+                .padding(.horizontal, 14)
+                .padding(.top, 4)
 
-                    Divider()
+                Spacer()
 
-                    // Exercise list removed from card preview per request
-
-                     // Show all exercises link
-                    if workout.exercises.count > 0 {
-                        HStack {
-                            Spacer()
-                            NavigationLink(destination: WorkoutDetailView(workout: workout)) {
-                                Text("View details")
-                                    .font(.footnote)
-                                    .foregroundColor(Theme.accentColor)
-                            }
-                            Spacer()
-                        }
+                // Action button area (smaller)
+                if isCompleted {
+                    Text("Completed")
+                        .font(.subheadline).bold()
+                        .foregroundColor(.white)
+                        .frame(height: 40)
+                        .frame(maxWidth: .infinity)
+                        .background(Color.gray.opacity(0.6))
+                        .cornerRadius(10)
+                        .padding(.horizontal, 14)
+                } else {
+                    NavigationLink(destination: ActiveWorkoutView(workout: workout)) {
+                        Text(isToday ? "Start" : "View")
+                            .font(.subheadline).bold()
+                            .foregroundColor(.white)
+                            .frame(height: 44)
+                            .frame(maxWidth: .infinity)
+                            .background(LinearGradient(colors: [Theme.accentColor, Theme.accentColor.opacity(0.85)], startPoint: .leading, endPoint: .trailing))
+                            .cornerRadius(12)
+                            .padding(.horizontal, 14)
                     }
+                }
 
-                    // If this card represents today's plan, show a Start or Completed button
-                    if isToday {
-                        if isCompleted {
-                            HStack {
-                                Spacer()
-                                Text("Completed")
-                                    .font(.headline)
-                                    .foregroundColor(.white)
-                                    .frame(height: 44)
-                                    .frame(maxWidth: .infinity)
-                                    .background(Color.gray.opacity(0.6))
-                                    .cornerRadius(12)
-                                    .padding(.top, 8)
-                                Spacer()
-                            }
-                        } else {
-                            HStack {
-                                Spacer()
-                                NavigationLink(destination: ActiveWorkoutView(workout: workout)) {
-                                    Text("Start")
-                                        .font(.headline)
-                                        .foregroundColor(.white)
-                                        .frame(height: 44)
-                                        .frame(maxWidth: .infinity)
-                                        .background(Theme.accentColor)
-                                        .cornerRadius(12)
-                                        .padding(.top, 8)
-                                }
-                                Spacer()
-                            }
-                        }
-                    }
-                 }
-                 .padding(20)
-             }
-         }
-         .frame(width: 260)
-         .shadow(radius: 10)
-     }
- }
+                // Lottie completion animation (smaller)
+                if isCompleted {
+                    LottieView(filename: "success_check", play: $playCompletionAnimation)
+                        .frame(width: 72, height: 72)
+                        .allowsHitTesting(false)
+                        .padding(.bottom, 6)
+                }
+
+                Spacer().frame(height: 8)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .frame(width: 260, height: 340)
+        .padding(.vertical, 6)
+    }
+}
 
 struct HistoryRowView: View {
     let log: WorkoutLog

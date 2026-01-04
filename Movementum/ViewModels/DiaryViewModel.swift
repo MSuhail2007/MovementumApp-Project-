@@ -27,16 +27,18 @@ struct FoodEntry: Identifiable, Codable, Equatable {
     var protein: Double
     var fat: Double
     var carbs: Double
+    var quantity: Double // new: quantity in grams (or servings as app-level unit)
     var mealType: String
     var date: Date
 
-    init(id: UUID = UUID(), name: String, calories: Int, protein: Double, fat: Double = 0.0, carbs: Double = 0.0, mealType: String, date: Date) {
+    init(id: UUID = UUID(), name: String, calories: Int, protein: Double, fat: Double = 0.0, carbs: Double = 0.0, quantity: Double = 1.0, mealType: String, date: Date) {
         self.id = id
         self.name = name
         self.calories = calories
         self.protein = protein
         self.fat = fat
         self.carbs = carbs
+        self.quantity = quantity
         self.mealType = mealType
         self.date = date
     }
@@ -326,9 +328,9 @@ final class DiaryViewModel: ObservableObject {
 
         let now = Date()
         entries = [
-            FoodEntry(name: "Oats with banana", calories: 350, protein: 12.5, mealType: "Breakfast", date: now),
-            FoodEntry(name: "Chicken salad", calories: 520, protein: 36.0, mealType: "Lunch", date: now),
-            FoodEntry(name: "Paneer curry", calories: 650, protein: 28.0, mealType: "Dinner", date: now)
+            FoodEntry(name: "Oats with banana", calories: 350, protein: 12.5, fat: 5.0, carbs: 60.0, quantity: 100.0, mealType: "Breakfast", date: now),
+            FoodEntry(name: "Chicken salad", calories: 520, protein: 36.0, fat: 20.0, carbs: 10.0, quantity: 250.0, mealType: "Lunch", date: now),
+            FoodEntry(name: "Paneer curry", calories: 650, protein: 28.0, fat: 40.0, carbs: 25.0, quantity: 300.0, mealType: "Dinner", date: now)
         ]
 
         workoutLogs = [

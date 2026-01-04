@@ -49,7 +49,7 @@ struct HydrationView: View {
                             .frame(width: 220, height: 220)
                         Circle()
                             .trim(from: 0, to: progressFraction)
-                            .stroke(LinearGradient(colors: [Theme.accent, Theme.accent.opacity(0.6)], startPoint: .topLeading, endPoint: .bottomTrailing), style: StrokeStyle(lineWidth: 18, lineCap: .round))
+                            .stroke(LinearGradient(colors: [Color.blue, Color.blue.opacity(0.6)], startPoint: .topLeading, endPoint: .bottomTrailing), style: StrokeStyle(lineWidth: 18, lineCap: .round))
                             .rotationEffect(.degrees(-90))
                             .frame(width: 220, height: 220)
                             .animation(.easeOut(duration: 0.4), value: healthManager.dailyWaterIntake)
@@ -61,7 +61,7 @@ struct HydrationView: View {
                             HStack(alignment: .firstTextBaseline, spacing: 4) {
                                 Text("\(Int(healthManager.dailyWaterIntake))")
                                     .font(.system(size: 34, weight: .bold))
-                                    .foregroundColor(Theme.accent)
+                                    .foregroundColor(Color.blue)
                                 Text("/\(waterIntakeGoal)ml")
                                     .font(.subheadline)
                                     .foregroundColor(Theme.secondaryTextColor)
@@ -77,7 +77,7 @@ struct HydrationView: View {
                         HStack(alignment: .firstTextBaseline, spacing: 6) {
                             Text("\(Int(selectedAmount))")
                                 .font(.system(size: 64, weight: .bold))
-                                .foregroundColor(Theme.accent)
+                                .foregroundColor(Color.blue)
                             Text("ml")
                                 .font(.title3)
                                 .foregroundColor(Theme.secondaryTextColor)
@@ -89,7 +89,7 @@ struct HydrationView: View {
                                 .fill(Theme.secondaryBackgroundColor)
                                 .frame(height: 10)
                             Slider(value: $selectedAmount, in: 50...1000, step: 50)
-                                .accentColor(Theme.accent)
+                                .accentColor(Color.white)
                         }
                         .padding(.horizontal)
                     }
@@ -137,7 +137,7 @@ struct HydrationView: View {
                                             .foregroundColor(Theme.secondaryTextColor)
                                     }
                                     .padding(8)
-                                    .background(Theme.accent.gradient)
+                                    .background(Color.blue.gradient)
                                     .cornerRadius(20)
                                     
                                     VStack(alignment: .leading) {

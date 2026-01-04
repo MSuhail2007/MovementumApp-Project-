@@ -35,7 +35,13 @@ class HealthStoreManager: ObservableObject {
 
         // --- UPDATED: Request write permission for dietaryWater (so we can save water samples). Also request read permissions as before.
         let dietaryWaterType = HKObjectType.quantityType(forIdentifier: .dietaryWater)!
-        let typesToShare: Set<HKSampleType> = [dietaryWaterType]
+        // New nutrient types we want to write/read
+        let dietaryEnergyType = HKObjectType.quantityType(forIdentifier: .dietaryEnergyConsumed)!
+        let dietaryProteinType = HKObjectType.quantityType(forIdentifier: .dietaryProtein)!
+        let dietaryFatType = HKObjectType.quantityType(forIdentifier: .dietaryFatTotal)!
+        let dietaryCarbsType = HKObjectType.quantityType(forIdentifier: .dietaryCarbohydrates)!
+
+        let typesToShare: Set<HKSampleType> = [dietaryWaterType, dietaryEnergyType, dietaryProteinType, dietaryFatType, dietaryCarbsType]
 
         let typesToRead: Set<HKObjectType> = [
             HKObjectType.quantityType(forIdentifier: .stepCount)!,
@@ -45,7 +51,11 @@ class HealthStoreManager: ObservableObject {
             HKObjectType.quantityType(forIdentifier: .height)!,
             HKObjectType.quantityType(forIdentifier: .bodyMass)!,
             dietaryWaterType,
-            HKObjectType.characteristicType(forIdentifier: .dateOfBirth)! // DOB permission
+            HKObjectType.characteristicType(forIdentifier: .dateOfBirth)!, // DOB permission
+            dietaryEnergyType,
+            dietaryProteinType,
+            dietaryFatType,
+            dietaryCarbsType
         ]
 
         healthStore.requestAuthorization(toShare: typesToShare, read: typesToRead) { success, error in
@@ -247,5 +257,51 @@ class HealthStoreManager: ObservableObject {
         }
 
         healthStore.execute(query)
+    }
+    
+    // --- NEW: Save a food entry (calories, protein, fat, carbs) into HealthKit ---
+    func saveFoodEntry(_ entry: FoodEntry, completion: @escaping (Error?) -> Void) {
+        var samples: [HKSample] = []
+
+        if let energyType = HKQuantityType.quantityType(forIdentifier: .dietaryEnergyConsumed) {
+            let energyQuantity = HKQuantity(unit: .kilocalorie(), doubleValue: Double(entry.calories))
+            let energySample = HKQuantitySample(type: energyType, quantity: energyQuantity, start: entry.date, end: entry.date)
+            samples.append(energySample)
+        }
+
+        if let proteinType = HKQuantityType.quantityType(forIdentifier: .dietaryProtein) {
+            let proteinQuantity = HKQuantity(unit: .gram(), doubleValue: entry.protein)
+            let proteinSample = HKQuantitySample(type: proteinType, quantity: proteinQuantity, start: entry.date, end: entry.date)
+            samples.append(proteinSample)
+        }
+
+        if let fatType = HKQuantityType.quantityType(forIdentifier: .dietaryFatTotal) {
+            let fatQuantity = HKQuantity(unit: .gram(), doubleValue: entry.fat)
+            let fatSample = HKQuantitySample(type: fatType, quantity: fatQuantity, start: entry.date, end: entry.date)
+            samples.append(fatSample)
+        }
+
+        if let carbsType = HKQuantityType.quantityType(forIdentifier: .dietaryCarbohydrates) {
+            let carbsQuantity = HKQuantity(unit: .gram(), doubleValue: entry.carbs)
+            let carbsSample = HKQuantitySample(type: carbsType, quantity: carbsQuantity, start: entry.date, end: entry.date)
+            samples.append(carbsSample)
+        }
+
+        guard !samples.isEmpty else {
+            DispatchQueue.main.async { completion(nil) }
+            return
+        }
+
+        healthStore.save(samples) { success, error in
+            DispatchQueue.main.async {
+                if success {
+                    // Optionally refresh relevant queries
+                    self.fetchTodaysWater()
+                    completion(nil)
+                } else {
+                    completion(error)
+                }
+            }
+        }
     }
 }

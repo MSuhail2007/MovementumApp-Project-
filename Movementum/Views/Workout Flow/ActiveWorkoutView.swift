@@ -32,11 +32,11 @@ struct ActiveWorkoutView: View {
                         .font(.headline)
                         .foregroundColor(Theme.secondaryTextColor)
                     
-                    CustomProgressView(progress: workoutProgress, color: Theme.accentColor)
+                    CustomProgressView(progress: workoutProgress, color:Theme.secondaryTextColor )
                         .frame(height: 8)
                     
                     Button("Exit") { dismiss() }
-                        .foregroundColor(Theme.accentColor)
+                        .foregroundColor(Color.red)
                 }
                 .padding(.horizontal)
                 
@@ -51,14 +51,19 @@ struct ActiveWorkoutView: View {
                 if !isResting {
                     Button(action: completeSet) {
                         Text(isLastSet ? "Finish Exercise" : "Complete Set")
+                        
                             .font(.headline)
                             .foregroundColor(.black)
                             .frame(maxWidth: .infinity)
                             .frame(height: 55)
-                            .background(Theme.accentColor)
-                            .cornerRadius(15)
+                            .buttonStyle(GlassButtonStyle())
+                            .background(Color.green)
+                            .cornerRadius(30)
+                            
                     }
+                    
                     .padding()
+                    
                 }
             }
         }
@@ -116,7 +121,7 @@ struct ExerciseDisplayView: View {
                 
                 Circle()
                     .trim(from: 0, to: CGFloat(currentSet) / CGFloat(exercise.sets))
-                    .stroke(Theme.accentColor, style: StrokeStyle(lineWidth: 20, lineCap: .round))
+                    .stroke(Color.gray, style: StrokeStyle(lineWidth: 20, lineCap: .round))
                     .rotationEffect(.degrees(-90))
                     .animation(.easeOut, value: currentSet)
                 
@@ -178,7 +183,7 @@ struct RestTimerView: View {
             Text("REST").font(.largeTitle).bold().foregroundColor(Theme.secondaryTextColor)
             Text("\(timeRemaining)").font(.system(size: 80, weight: .bold)).foregroundColor(Theme.textColor)
             if let nextExercise = nextExerciseName {
-                Text("Next Up: \(nextExercise)").font(.headline).foregroundColor(Theme.accentColor)
+                Text("Next Up: \(nextExercise)").font(.headline).foregroundColor(Color.green)
             }
             Button("Skip Rest") { skipAction() }.foregroundColor(Theme.secondaryTextColor).padding(.top, 20)
             Spacer()

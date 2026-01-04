@@ -19,86 +19,20 @@ struct CreateRoutineView: View {
 
     var body: some View {
         NavigationView {
-            ScrollView {
-                VStack(spacing: 20) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Routine Title").font(.headline)
-                        TextField("e.g. Full Body Blast", text: $routineName)
-                            .textFieldStyle(.roundedBorder)
+            VStack(spacing: 0) {
+                
+                // 1. Scrollable Top Section
+                ScrollView {
+                    VStack(spacing: 20) {
+                        routineDetailsSection
+                        Divider()
+                        addedExercisesList
                     }
-
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Estimated Duration").font(.headline)
-                        TextField("e.g. 30 Minutes", text: $durationText)
-                            .textFieldStyle(.roundedBorder)
-                    }
-
-                    Divider()
-
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Add Exercise").font(.headline)
-
-                        TextField("Exercise name", text: $exerciseName)
-                            .textFieldStyle(.roundedBorder)
-
-                        HStack {
-                            Stepper("Sets: \(exerciseSets)", value: $exerciseSets, in: 1...10)
-                            Spacer()
-                            TextField("Reps (e.g. 8-12)", text: $exerciseReps)
-                                .frame(width: 120)
-                                .textFieldStyle(.roundedBorder)
-                        }
-
-                        Picker("Type", selection: $exerciseType) {
-                            ForEach(ExerciseType.allCases, id: \.self) { type in
-                                Text(type.rawValue.capitalized).tag(type)
-                            }
-                        }
-                        .pickerStyle(.segmented)
-
-                        Button(action: addExercise) {
-                            Label("Add Exercise", systemImage: "plus.circle")
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .glassEffect()
-                                .background(Theme.accent)
-                                .foregroundColor(Theme.textColor)
-                                .cornerRadius(30)
-                        }
-                        .disabled(exerciseName.trimmingCharacters(in: .whitespaces).isEmpty)
-
-                    }
-
-                    if !exercises.isEmpty {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Exercises")
-                                .font(.headline)
-
-                            ForEach(exercises) { ex in
-                                HStack {
-                                    VStack(alignment: .leading) {
-                                        Text(ex.name).font(.subheadline).bold()
-                                        Text("\(ex.sets)x \(ex.reps)").font(.caption).foregroundColor(Theme.secondaryTextColor)
-                                    }
-                                    Spacer()
-                                    Button(role: .destructive) {
-                                        if let idx = exercises.firstIndex(of: ex) {
-                                            exercises.remove(at: idx)
-                                        }
-                                    } label: {
-                                        Image(systemName: "trash")
-                                    }
-                                }
-                                .padding()
-                                .background(Theme.secondaryBackgroundColor)
-                                .cornerRadius(10)
-                            }
-                        }
-                    }
-
-                    Spacer()
+                    .padding()
                 }
-                .padding()
+
+                // 2. Fixed Bottom Section
+                addNewExerciseForm
             }
             .navigationTitle("Create Routine")
             .navigationBarTitleDisplayMode(.inline)
@@ -116,14 +50,127 @@ struct CreateRoutineView: View {
         }
     }
 
+    // MARK: - Extracted Views
+
+    private var routineDetailsSection: some View {
+        VStack(spacing: 20) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Routine Title").font(.headline)
+                TextField("e.g. Full Body Blast", text: $routineName)
+                    .padding()
+                    .glassEffect()
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Estimated Duration").font(.headline)
+                TextField("e.g. 30 Minutes", text: $durationText)
+                    .padding()
+                    .glassEffect()
+            }
+        }
+    }
+
+    private var addedExercisesList: some View {
+        Group {
+            if !exercises.isEmpty {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Added Exercises")
+                        .font(.headline)
+                        .foregroundColor(.gray)
+
+                    ForEach(exercises) { ex in
+                        HStack {
+                            VStack(alignment: .leading) {
+                                Text(ex.name).font(.subheadline).bold()
+                                
+                                // 👇 FIXED LINE: Safely unwrap optional type
+                                Text("\(ex.sets)x \(ex.reps) • \((ex.type?.rawValue ?? "General").capitalized)")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
+                            Button(role: .destructive) {
+                                if let idx = exercises.firstIndex(of: ex) {
+                                    exercises.remove(at: idx)
+                                }
+                            } label: {
+                                Image(systemName: "trash")
+                                    .foregroundColor(.red)
+                            }
+                        }
+                        .padding()
+                        .background(Color.gray.opacity(0.1))
+                        .cornerRadius(20)
+                    }
+                }
+            } else {
+                Text("No exercises added yet")
+                    .foregroundColor(.gray)
+                    .padding(.top, 20)
+            }
+        }
+    }
+
+    private var addNewExerciseForm: some View {
+        VStack(spacing: 12) {
+            Divider()
+            
+            Text("Add New Exercise").font(.caption).bold().frame(maxWidth: .infinity, alignment: .leading)
+            
+            TextField("Exercise name", text: $exerciseName)
+                .padding()
+                .glassEffect()
+
+            HStack {
+                Stepper("Sets: \(exerciseSets)", value: $exerciseSets, in: 1...10)
+                Spacer()
+                TextField("Reps", text: $exerciseReps)
+                    .frame(width: 80)
+                    .multilineTextAlignment(.center)
+                    .textFieldStyle(.roundedBorder)
+            }
+
+            Picker("Type", selection: $exerciseType) {
+                ForEach(ExerciseType.allCases, id: \.self) { type in
+                    Text(type.rawValue.capitalized).tag(type)
+                }
+            }
+            .pickerStyle(.segmented)
+
+            Button(action: addExercise) {
+                Label("Add to Routine", systemImage: "plus.circle.fill")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(exerciseName.trimmingCharacters(in: .whitespaces).isEmpty ? Color.green : Color.green)
+                    .foregroundColor(.white)
+                    .cornerRadius(25)
+            }
+            .disabled(exerciseName.trimmingCharacters(in: .whitespaces).isEmpty)
+        }
+        .padding()
+        .background(.regularMaterial)
+        .cornerRadius(25, corners: [.topLeft, .topRight])
+        .shadow(radius: 10)
+    }
+
+    // MARK: - Functions
+
     private func addExercise() {
         let trimmed = exerciseName.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return }
-        // Provide a default rest time when creating an Exercise from the UI
-        let ex = Exercise(name: trimmed, sets: exerciseSets, reps: exerciseReps, restTime: 60, type: exerciseType, animationName: "")
+        
+        // Ensure Exercise handles the type correctly
+        let ex = Exercise(
+            name: trimmed,
+            sets: exerciseSets,
+            reps: exerciseReps,
+            restTime: 60,
+            type: exerciseType,
+            animationName: ""
+        )
         exercises.append(ex)
 
-        // reset fields
         exerciseName = ""
         exerciseSets = 3
         exerciseReps = "10"
@@ -137,19 +184,36 @@ struct CreateRoutineView: View {
             showAlert = true
             return
         }
-
         guard !exercises.isEmpty else {
             alertMessage = "Please add at least one exercise to the routine."
             showAlert = true
             return
         }
-
         let routine = UserRoutine(name: trimmedName, duration: durationText, exercises: exercises, createdAt: Date())
         diaryViewModel.add(routine: routine)
         dismiss()
     }
 }
 
+// MARK: - Helpers
+
+extension View {
+    func cornerRadius(_ radius: CGFloat, corners: UIRectCorner) -> some View {
+        clipShape( RoundedCorner(radius: radius, corners: corners) )
+    }
+}
+
+struct RoundedCorner: Shape {
+    var radius: CGFloat = .infinity
+    var corners: UIRectCorner = .allCorners
+    func path(in rect: CGRect) -> Path {
+        let path = UIBezierPath(roundedRect: rect, byRoundingCorners: corners, cornerRadii: CGSize(width: radius, height: radius))
+        return Path(path.cgPath)
+    }
+}
+
 #Preview {
-    CreateRoutineView().environmentObject(DiaryViewModel(isForPreview: true)).preferredColorScheme(.dark)
+    CreateRoutineView()
+        .environmentObject(DiaryViewModel(isForPreview: true))
+        .preferredColorScheme(.dark)
 }

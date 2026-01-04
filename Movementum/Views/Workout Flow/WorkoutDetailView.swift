@@ -40,11 +40,13 @@ struct WorkoutDetailView: View {
                         .foregroundColor(Theme.textColor)
                         .frame(maxWidth: .infinity)
                         .frame(height: 55)
-                        .background(Theme.accentColor)
-                        .cornerRadius(15)
+                        .background(Color.green)
+                        .cornerRadius(25)
+                        .glassEffect()
                 }
                 .padding(.horizontal)
                 .padding(.bottom, 8)
+                
             }
         }
         .navigationTitle(workout.name)
@@ -110,11 +112,10 @@ struct ExerciseRowView: View {
             // We can add a button here later to show a video or instructions
             Image(systemName: "info.circle")
                 .font(.title2)
-                .foregroundColor(Theme.accentColor)
+                .foregroundColor(Color.blue)
         }
         .padding()
-        .background(Theme.secondaryBackgroundColor)
-        .cornerRadius(12)
+        .glassEffect()
     }
 }
 

@@ -77,10 +77,10 @@ struct HomeView: View {
 
                             // 2x2 grid of metric cards
                             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 20) {
-                                BlackMetricCard(title: "Sleep", subtitle: "Sleeping", value: healthManager.sleepDurationString, accent: Theme.accent, detailText: "Sleeping and energy restored")
-                                BlackMetricCard(title: "Heart", subtitle: "Resting BPM", value: healthManager.restingHeartRate > 0 ? String(format: "%.0f bpm", healthManager.restingHeartRate) : "--", accent: Theme.accent, detailText: "Your heart rate is normal")
-                                BlackMetricCard(title: "Walks", subtitle: "Today", value: String(format: "%.0f", healthManager.dailySteps), accent: Theme.accent, detailText: "Steps taken today")
-                                BlackMetricCard(title: "Workout", subtitle: "Today", value: diaryViewModel.fetchWorkoutLogs(for: Date()).last?.duration ?? "--", accent: Theme.accent, detailText: "Latest workout")
+                                BlackMetricCard(title: "Sleep", subtitle: "Sleeping", value: healthManager.sleepDurationString, accent: Color.blue, detailText: "Sleeping and energy restored")
+                                BlackMetricCard(title: "Heart", subtitle: "Resting BPM", value: healthManager.restingHeartRate > 0 ? String(format: "%.0f bpm", healthManager.restingHeartRate) : "--", accent: Color.red, detailText: "Your heart rate is normal")
+                                BlackMetricCard(title: "Walks", subtitle: "Today", value: String(format: "%.0f", healthManager.dailySteps), accent: Color.green, detailText: "Steps taken today")
+                                BlackMetricCard(title: "Workout", subtitle: "Today", value: diaryViewModel.fetchWorkoutLogs(for: Date()).last?.duration ?? "--", accent: Color.purple, detailText: "Latest workout")
                             }
                             .padding(.horizontal, 16)
                             .padding(.bottom, 80) // Reduced padding so content sits above floating tab bar
@@ -170,7 +170,7 @@ struct BlackAnalyticsCard: View {
                             value: carbs,
                             goal: carbsGoal,
                             unit: "g",
-                            color: Theme.accent
+                            color: Color.cyan
                         )
                         
                         MacroBarBlack(
@@ -178,7 +178,7 @@ struct BlackAnalyticsCard: View {
                             value: fat,
                             goal: fatGoal,
                             unit: "g",
-                            color: Theme.accent
+                            color: Color.yellow
                         )
                         
                         MacroBarBlack(
@@ -186,7 +186,7 @@ struct BlackAnalyticsCard: View {
                             value: protein,
                             goal: proteinGoal,
                             unit: "g",
-                            color: Theme.accent
+                            color: Color.white
                         )
                     }
                     .padding(.horizontal, 20)
